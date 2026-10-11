@@ -1,0 +1,1944 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcoSzett – Okosgardrób alkalmazás | Gipsy Systems KFT.</title>
+<meta name="description" content="EcoSzett – okosgardrób alkalmazás bemutató. Gipsy Systems KFT. – Vállalkozz a jövőért!">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* =========================================================
+     ECOSZETT – DESIGN TOKENS
+     ========================================================= */
+  :root {
+    --bg: #0a111f;
+    --bg-2: #0f1829;
+    --card: #141e31;
+    --card-2: #182540;
+    --line: rgba(255, 255, 255, 0.08);
+    --line-2: rgba(255, 255, 255, 0.14);
+    --text: #eef2f7;
+    --muted: #9aa7bb;
+    --muted-2: #6f7d93;
+    --green: #22c55e;
+    --green-2: #10b981;
+    --green-dim: rgba(34, 197, 94, 0.14);
+    --green-glow: rgba(34, 197, 94, 0.45);
+    --red: #ef4444;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --font-scale: 1;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection { background: var(--green); color: #04130a; }
+
+  /* =========================================================
+     STAGE, BACKGROUND LAYERS
+     ========================================================= */
+  #stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background:
+      radial-gradient(1200px 700px at 80% -10%, rgba(16, 185, 129, 0.12) 0%, transparent 60%),
+      radial-gradient(900px 600px at 0% 100%, rgba(34, 197, 94, 0.08) 0%, transparent 55%),
+      linear-gradient(180deg, #0b1322 0%, #0a111f 100%);
+  }
+
+  #grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.25) 70%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.25) 70%, transparent 100%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  #particles {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.9;
+  }
+
+  /* MORPH BACKGROUND CIRCLE – utazó smaragd fényfolt */
+  #morph-circle {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(34,197,94,0.22) 0%, rgba(16,185,129,0.06) 45%, transparent 70%);
+    filter: blur(10px);
+    z-index: 1;
+    transition: all 1.4s var(--ease);
+    pointer-events: none;
+    will-change: transform, left, top, width, height;
+  }
+
+  /* MORPH BAR – utazó díszcsík */
+  #morph-bar {
+    position: absolute;
+    top: 0; left: 0;
+    background: linear-gradient(90deg, var(--green), var(--green-2));
+    border-radius: 8px;
+    z-index: 25;
+    pointer-events: none;
+    box-shadow: 0 0 24px var(--green-glow);
+    transition: transform 0.9s var(--ease), width 0.9s var(--ease), height 0.9s var(--ease), opacity 0.4s;
+  }
+
+  /* PROGRESS */
+  #progress-track {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    z-index: 100;
+  }
+  #progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--green-2), var(--green));
+    box-shadow: 0 0 18px var(--green-glow);
+    transition: width 0.7s var(--ease);
+  }
+
+  /* =========================================================
+     SLIDES
+     ========================================================= */
+  .slide {
+    position: absolute;
+    inset: 0;
+    padding: 8vh 5vw 11vh 5vw;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    opacity: 0;
+    transform: scale(0.96) translateY(28px);
+    filter: blur(6px);
+    transition: opacity 0.85s var(--ease), transform 0.85s var(--ease), filter 0.85s var(--ease);
+    pointer-events: none;
+    z-index: 5;
+    overflow: hidden;
+  }
+  .slide.active {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    filter: blur(0);
+    pointer-events: auto;
+    z-index: 6;
+  }
+  .slide.prev {
+    opacity: 0;
+    transform: scale(1.04) translateY(-28px);
+    filter: blur(6px);
+  }
+
+  .slide-inner {
+    width: 100%;
+    max-width: 92vw;
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  /* Reveal: minden diaelem lépcsőzetesen jelenik meg */
+  .reveal {
+    opacity: 0;
+    transform: translateY(26px);
+    transition: opacity 0.8s var(--ease), transform 0.8s var(--ease);
+    transition-delay: var(--d, 0s);
+  }
+  .slide.active .reveal { opacity: 1; transform: translateY(0); }
+  .slide.active .reveal.from-left { transform: translateX(0); }
+  .reveal.from-left { transform: translateX(-36px); }
+  .reveal.from-right { transform: translateX(36px); }
+  .slide.active .reveal.from-right { transform: translateX(0); }
+  .reveal.zoom { transform: scale(0.85); }
+  .slide.active .reveal.zoom { transform: scale(1); }
+
+  /* =========================================================
+     TIPOGRÁFIA – vetítésre optimalizálva
+     ========================================================= */
+  h1, h2, h3 { font-family: 'Sora', 'Inter', sans-serif; color: var(--text); letter-spacing: -0.02em; }
+
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    font-size: calc(clamp(0.72rem, 0.95vw, 1.3rem) * var(--font-scale));
+    font-weight: 700;
+    color: var(--green);
+    margin-bottom: 1.4vh;
+  }
+  .kicker::before {
+    content: '';
+    width: 2.2em; height: 2px;
+    background: linear-gradient(90deg, var(--green), transparent);
+    border-radius: 2px;
+  }
+
+  h1 {
+    font-size: calc(clamp(2.6rem, 4.6vw, 6.4rem) * var(--font-scale));
+    line-height: 1.05;
+    font-weight: 800;
+  }
+  h2 {
+    font-size: calc(clamp(2rem, 3.2vw, 4.6rem) * var(--font-scale));
+    line-height: 1.1;
+    font-weight: 700;
+  }
+  h3 {
+    font-size: calc(clamp(1.15rem, 1.5vw, 2.2rem) * var(--font-scale));
+    line-height: 1.25;
+    font-weight: 600;
+  }
+  .grad {
+    background: linear-gradient(90deg, #ffffff 0%, var(--green) 55%, var(--green-2) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .morph-anchor {
+    width: clamp(110px, 11vw, 200px);
+    height: 6px;
+    margin: 1.6vh 0 2.4vh 0;
+    opacity: 0;
+  }
+
+  p.lead {
+    font-size: calc(clamp(1.05rem, 1.45vw, 2.1rem) * var(--font-scale));
+    color: var(--muted);
+    line-height: 1.55;
+    max-width: 62ch;
+  }
+  p.lead strong, .card p strong { color: var(--text); font-weight: 600; }
+  .accent { color: var(--green); }
+
+  /* =========================================================
+     RÁCSOK
+     ========================================================= */
+  .split { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 4vw; align-items: center; width: 100%; }
+  .split.rev { grid-template-columns: 0.9fr 1.1fr; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.6vw; width: 100%; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.6vw; width: 100%; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.4vw; width: 100%; }
+  .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1.2vw; width: 100%; }
+
+  /* =========================================================
+     KÁRTYÁK
+     ========================================================= */
+  .card {
+    position: relative;
+    background: linear-gradient(160deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    padding: 2.4vh 1.5vw;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.35);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    gap: 0.9vh;
+    transition: transform 0.5s var(--ease), border-color 0.5s, box-shadow 0.5s;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(400px 160px at var(--mx, 50%) var(--my, 0%), rgba(34,197,94,0.14), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.5s;
+    pointer-events: none;
+  }
+  .card:hover { transform: translateY(-6px); border-color: rgba(34,197,94,0.45); box-shadow: 0 30px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(34,197,94,0.15); }
+  .card:hover::before { opacity: 1; }
+  .card p {
+    font-size: calc(clamp(0.95rem, 1.08vw, 1.6rem) * var(--font-scale));
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .card .icon {
+    width: clamp(42px, 3.4vw, 64px);
+    height: clamp(42px, 3.4vw, 64px);
+    border-radius: 16px;
+    background: var(--green-dim);
+    border: 1px solid rgba(34,197,94,0.3);
+    display: grid;
+    place-items: center;
+    color: var(--green);
+    margin-bottom: 0.6vh;
+    box-shadow: inset 0 0 20px rgba(34,197,94,0.1);
+  }
+  .card .icon svg { width: 55%; height: 55%; }
+  .card .num {
+    font-family: 'Sora', sans-serif;
+    font-size: calc(clamp(0.9rem, 1vw, 1.4rem) * var(--font-scale));
+    color: var(--green);
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+
+  /* STAT KÁRTYA */
+  .stat {
+    text-align: left;
+  }
+  .stat .big {
+    font-family: 'Sora', sans-serif;
+    font-size: calc(clamp(2.4rem, 4vw, 5.6rem) * var(--font-scale));
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(180deg, #fff, #a7f3d0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: -0.03em;
+  }
+  .stat .big small { font-size: 0.45em; color: var(--green); -webkit-text-fill-color: var(--green); margin-left: 0.15em; }
+  .stat .lbl { font-weight: 600; color: var(--text); font-size: calc(clamp(0.95rem, 1.1vw, 1.6rem) * var(--font-scale)); }
+  .stat .src { color: var(--muted-2); font-size: calc(clamp(0.7rem, 0.78vw, 1.1rem) * var(--font-scale)); }
+
+  /* TAG KÁRTYA */
+  .member { align-items: center; text-align: center; padding: 3.5vh 1.5vw; }
+  .member .avatar {
+    width: clamp(70px, 6.5vw, 120px);
+    height: clamp(70px, 6.5vw, 120px);
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-family: 'Sora', sans-serif;
+    font-weight: 800;
+    font-size: calc(clamp(1.3rem, 1.8vw, 2.6rem) * var(--font-scale));
+    color: #04130a;
+    background: conic-gradient(from 200deg, #34d399, #22c55e, #10b981, #34d399);
+    box-shadow: 0 0 0 6px rgba(34,197,94,0.12), 0 15px 40px rgba(34,197,94,0.25);
+    position: relative;
+  }
+  .member .avatar::after {
+    content: '';
+    position: absolute; inset: -10px;
+    border-radius: 50%;
+    border: 1px dashed rgba(34,197,94,0.4);
+    animation: spin 14s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .member .role { color: var(--muted); font-size: calc(clamp(0.85rem, 0.95vw, 1.4rem) * var(--font-scale)); }
+
+  /* CÍMKE */
+  .pill {
+    display: inline-flex; align-items: center; gap: 0.5em;
+    padding: 0.45em 0.95em;
+    border-radius: 999px;
+    background: var(--green-dim);
+    border: 1px solid rgba(34,197,94,0.35);
+    color: var(--green);
+    font-weight: 600;
+    font-size: calc(clamp(0.78rem, 0.9vw, 1.3rem) * var(--font-scale));
+    white-space: nowrap;
+  }
+  .pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); animation: pulse 1.8s infinite; }
+  @keyframes pulse { 0%,100% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.5); opacity: 0.6 } }
+
+  /* =========================================================
+     LOGÓ
+     ========================================================= */
+  .logo-wrap {
+    position: relative;
+    width: clamp(160px, 18vw, 330px);
+    height: clamp(160px, 18vw, 330px);
+    margin: 0 auto;
+  }
+  .logo-wrap::before {
+    content: '';
+    position: absolute; inset: -18%;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(34,197,94,0.35), transparent 65%);
+    filter: blur(20px);
+    animation: breathe 4s ease-in-out infinite;
+  }
+  @keyframes breathe { 0%,100% { transform: scale(0.9); opacity: 0.7 } 50% { transform: scale(1.1); opacity: 1 } }
+  .logo-tile {
+    position: relative;
+    width: 100%; height: 100%;
+    border-radius: 26%;
+    background: linear-gradient(145deg, #ffffff 0%, #eef5f0 100%);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.55), inset 0 -6px 18px rgba(0,0,0,0.06), 0 0 0 1px rgba(255,255,255,0.4);
+    display: grid; place-items: center;
+    animation: floaty 6s ease-in-out infinite;
+  }
+  .logo-tile svg { width: 76%; height: 76%; }
+  @keyframes floaty { 0%,100% { transform: translateY(0) rotate(-1deg) } 50% { transform: translateY(-14px) rotate(1deg) } }
+  .draw { stroke-dasharray: 600; stroke-dashoffset: 600; }
+  .slide.active .draw { animation: draw 2.2s var(--ease) forwards; }
+  .slide.active .draw.d2 { animation-delay: 0.5s; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+
+  .logo-mini {
+    width: 1.1em; height: 1.1em; border-radius: 22%;
+    background: #fff; display: inline-grid; place-items: center; vertical-align: -0.2em; margin-right: 0.35em;
+  }
+  .logo-mini svg { width: 80%; height: 80%; }
+
+  /* =========================================================
+     TELEFON MOCKUP – az app képernyői
+     ========================================================= */
+  .phone {
+    --pw: clamp(220px, 19vw, 340px);
+    position: relative;
+    width: var(--pw);
+    aspect-ratio: 9 / 19;
+    border-radius: calc(var(--pw) * 0.14);
+    background: #0d1526;
+    border: 7px solid #1c2740;
+    box-shadow:
+      0 0 0 2px #0a0f1b,
+      0 40px 90px rgba(0,0,0,0.6),
+      0 0 70px rgba(34,197,94,0.14),
+      inset 0 0 0 1px rgba(255,255,255,0.06);
+    overflow: hidden;
+    font-size: calc(var(--pw) * 0.036);
+    color: var(--text);
+    flex-shrink: 0;
+    transform-style: preserve-3d;
+  }
+  .phone::before { /* dynamic island */
+    content: '';
+    position: absolute;
+    top: 2.5%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32%;
+    height: 3.2%;
+    background: #05080f;
+    border-radius: 999px;
+    z-index: 5;
+  }
+  .phone .status {
+    position: absolute; top: 2.6%; left: 8%; right: 8%;
+    display: flex; justify-content: space-between;
+    font-size: 0.85em; font-weight: 600; color: #cbd5e1;
+    z-index: 4;
+  }
+  .phone .status .dots { display: flex; gap: 0.3em; align-items: center; }
+  .phone .status .dots i { display: block; width: 0.55em; height: 0.55em; border-radius: 50%; background: #cbd5e1; }
+  .phone .status .dots i:last-child { width: 1.1em; border-radius: 3px; background: var(--green); }
+
+  .screen {
+    position: absolute;
+    inset: 0;
+    padding: 11% 7% 15% 7%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8em;
+    background: linear-gradient(180deg, #0d1526 0%, #0a1220 100%);
+  }
+  .screen.fade-in { animation: screenIn 0.55s var(--ease); }
+  @keyframes screenIn { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
+
+  .screen h4 {
+    font-family: 'Sora', sans-serif;
+    font-size: 1.45em;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .screen .badge {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.62em; font-weight: 700;
+    padding: 0.35em 0.7em;
+    border-radius: 999px;
+    border: 1px solid rgba(34,197,94,0.5);
+    color: var(--green);
+    background: var(--green-dim);
+    display: inline-flex; align-items: center; gap: 0.4em;
+  }
+  .screen .badge i { width: 0.7em; height: 0.7em; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+  .s-card {
+    background: #152038;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 1.1em;
+    padding: 0.9em;
+    display: flex; flex-direction: column; gap: 0.6em;
+  }
+  .s-card .t { font-weight: 700; font-size: 0.95em; }
+  .s-card .sub { font-size: 0.72em; color: var(--muted); }
+  .s-btn {
+    background: var(--green);
+    color: #04130a;
+    font-weight: 700;
+    border-radius: 0.8em;
+    text-align: center;
+    padding: 0.6em;
+    font-size: 0.8em;
+    box-shadow: 0 6px 20px rgba(34,197,94,0.35);
+  }
+  .s-shirt {
+    height: 5.5em;
+    border-radius: 0.8em;
+    background: #1a2843;
+    display: grid; place-items: center;
+    position: relative; overflow: hidden;
+  }
+  .s-shirt svg { width: 45%; height: 70%; }
+  .s-shirt::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.08) 50%, transparent 70%);
+    transform: translateX(-100%);
+    animation: shine 3.2s ease-in-out infinite;
+  }
+  @keyframes shine { 0% { transform: translateX(-100%) } 40%, 100% { transform: translateX(100%) } }
+
+  /* kis oszlopdiagram a kezdőlapon */
+  .s-bars { display: flex; align-items: flex-end; justify-content: space-between; height: 5em; padding: 0 0.3em; }
+  .s-bars i {
+    display: block;
+    width: 12%;
+    height: var(--h);
+    border-radius: 0.3em 0.3em 0.1em 0.1em;
+    background: linear-gradient(180deg, var(--green), var(--green-2));
+    box-shadow: 0 0 10px rgba(34,197,94,0.3);
+    transform-origin: bottom;
+    transform: scaleY(0);
+    animation: grow 1s var(--ease) forwards;
+    animation-delay: calc(var(--i) * 0.08s + 0.3s);
+  }
+  @keyframes grow { to { transform: scaleY(1); } }
+
+  .s-alert { border-color: rgba(239,68,68,0.25); animation: screenIn 0.6s var(--ease) both; animation-delay: 0.5s; }
+  .s-alert .t { display: flex; justify-content: space-between; align-items: center; }
+  .s-link { font-size: 0.75em; font-weight: 700; color: var(--green); }
+  .s-near { display: flex; justify-content: space-between; font-size: 0.68em; color: var(--muted); padding: 0.2em 0.3em; }
+
+  /* gardrób */
+  .s-search { background: #152038; border-radius: 999px; padding: 0.55em 0.9em; font-size: 0.75em; color: var(--muted); border: 1px solid rgba(255,255,255,0.07); display: flex; gap: 0.5em; align-items: center; }
+  .s-chips { display: flex; gap: 0.4em; flex-wrap: nowrap; overflow: hidden; }
+  .s-chip { font-size: 0.65em; padding: 0.35em 0.8em; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); color: var(--muted); white-space: nowrap; transition: all 0.3s; }
+  .s-chip.on { background: var(--green); color: #04130a; border-color: var(--green); font-weight: 700; }
+  .s-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6em; }
+  .s-item { background: #152038; border-radius: 0.9em; padding: 0.6em; border: 1px solid rgba(255,255,255,0.06); animation: screenIn 0.6s var(--ease) both; animation-delay: calc(var(--i) * 0.07s); }
+  .s-item .ph { height: 3.6em; border-radius: 0.6em; background: linear-gradient(135deg, #1b2a48, #121c31); margin-bottom: 0.45em; display: grid; place-items: center; }
+  .s-item .ph svg { width: 40%; height: 70%; opacity: 0.6; }
+  .s-item .t { font-size: 0.72em; font-weight: 600; }
+  .s-item .sub { font-size: 0.6em; color: var(--muted); }
+
+  /* kamera */
+  .s-cam { position: absolute; inset: 0; background: radial-gradient(circle at 50% 45%, #15213a 0%, #0a1220 70%); }
+  .s-cam .corner { position: absolute; width: 14%; height: 7%; border: 3px solid var(--green); filter: drop-shadow(0 0 6px var(--green)); }
+  .s-cam .c1 { top: 17%; left: 11%; border-right: 0; border-bottom: 0; border-radius: 0.4em 0 0 0; }
+  .s-cam .c2 { top: 17%; right: 11%; border-left: 0; border-bottom: 0; border-radius: 0 0.4em 0 0; }
+  .s-cam .c3 { bottom: 24%; left: 11%; border-right: 0; border-top: 0; border-radius: 0 0 0 0.4em; }
+  .s-cam .c4 { bottom: 24%; right: 11%; border-left: 0; border-top: 0; border-radius: 0 0 0.4em 0; }
+  .s-cam .scanline {
+    position: absolute; left: 13%; right: 13%; top: 20%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+    box-shadow: 0 0 16px var(--green);
+    animation: scan 2.6s ease-in-out infinite;
+  }
+  @keyframes scan { 0%, 100% { top: 20%; opacity: 0.2 } 50% { top: 72%; opacity: 1 } }
+  .s-cam .garment { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%); width: 46%; opacity: 0.55; }
+  .s-cam .tag {
+    position: absolute;
+    font-size: 0.7em; font-weight: 700;
+    padding: 0.35em 0.75em;
+    border-radius: 999px;
+    background: rgba(10,18,32,0.85);
+    border: 1px solid var(--green);
+    color: var(--green);
+    box-shadow: 0 0 14px rgba(34,197,94,0.3);
+    opacity: 0;
+    animation: tagIn 0.6s var(--ease) forwards;
+  }
+  .s-cam .tag.t1 { top: 30%; left: 14%; animation-delay: 1s; }
+  .s-cam .tag.t2 { top: 62%; right: 14%; animation-delay: 1.9s; }
+  .s-cam .tag.t3 { top: 46%; left: 60%; animation-delay: 2.8s; }
+  @keyframes tagIn { from { opacity: 0; transform: translateY(8px) scale(0.9) } to { opacity: 1; transform: none } }
+  .s-cam .ai { position: absolute; bottom: 17%; left: 0; right: 0; text-align: center; font-size: 0.7em; color: var(--muted); }
+  .s-cam .ai::after { content: ''; display: inline-block; width: 1.2em; text-align: left; animation: dots 1.4s steps(4) infinite; }
+  @keyframes dots { 0% { content: '' } 25% { content: '.' } 50% { content: '..' } 75% { content: '...' } }
+
+  /* piactér */
+  .s-swipe { position: relative; height: 15.5em; }
+  .s-swipe .mcard {
+    position: absolute; inset: 0;
+    background: #152038;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 1.1em;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transform-origin: 50% 120%;
+  }
+  .s-swipe .mcard.back { transform: scale(0.94) translateY(0.6em); opacity: 0.6; }
+  .s-swipe .mcard.front { animation: swipe 6s var(--ease) infinite; }
+  @keyframes swipe {
+    0%, 28% { transform: translateX(0) rotate(0); opacity: 1; }
+    40% { transform: translateX(-12em) rotate(-14deg); opacity: 0; }
+    41% { transform: translateX(12em) rotate(14deg); opacity: 0; }
+    55%, 78% { transform: translateX(0) rotate(0); opacity: 1; }
+    90% { transform: translateX(12em) rotate(14deg); opacity: 0; }
+    91% { transform: translateX(-12em) rotate(-14deg); opacity: 0; }
+    100% { transform: translateX(0) rotate(0); opacity: 1; }
+  }
+  .s-swipe .img { flex: 1; background: linear-gradient(160deg, #1d2d4d, #111b30); display: grid; place-items: center; }
+  .s-swipe .img svg { width: 45%; height: 60%; }
+  .s-swipe .info { padding: 0.75em 0.85em; }
+  .s-swipe .info .t { font-weight: 700; font-size: 0.9em; }
+  .s-swipe .info .sub { font-size: 0.66em; color: var(--muted); }
+  .s-swipe .info .price { font-size: 0.75em; color: var(--green); font-weight: 700; margin-top: 0.25em; }
+  .s-actions { display: flex; justify-content: space-evenly; align-items: center; margin-top: 0.4em; }
+  .s-actions .act {
+    width: 2.6em; height: 2.6em;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    border: 2px solid;
+  }
+  .s-actions .no { border-color: var(--red); color: var(--red); box-shadow: 0 0 16px rgba(239,68,68,0.25); animation: actPulse 6s infinite; }
+  .s-actions .yes { border-color: var(--green); color: var(--green); background: var(--green-dim); box-shadow: 0 0 16px rgba(34,197,94,0.3); animation: actPulse 6s infinite; animation-delay: 3s; }
+  .s-actions .act svg { width: 50%; height: 50%; }
+  @keyframes actPulse { 0%, 28%, 48%, 100% { transform: scale(1) } 34% { transform: scale(1.22) } }
+
+  .s-swipe.manual .mcard.front { animation: none; transition: transform 0.45s var(--ease), opacity 0.45s; }
+  .s-swipe .mcard.front.out-left { transform: translateX(-12em) rotate(-14deg); opacity: 0; }
+  .s-swipe .mcard.front.out-right { transform: translateX(12em) rotate(14deg); opacity: 0; }
+  .s-swipe.manual .mcard.back { transition: transform 0.45s var(--ease), opacity 0.45s; }
+  .s-swipe.manual.lift .mcard.back { transform: scale(1) translateY(0); opacity: 1; }
+  .s-actions .act { cursor: pointer; transition: transform 0.2s; }
+  .s-actions .act:active { transform: scale(0.85); }
+  .s-btn, .s-chip, .s-toggle, .s-link, .s-item { cursor: pointer; }
+  .s-btn.done { background: #a7f3d0; animation: popIn 0.4s var(--ease); }
+  @keyframes popIn { 0% { transform: scale(0.9) } 60% { transform: scale(1.06) } 100% { transform: scale(1) } }
+  .s-toggle.off { background: #334155; }
+  .s-toggle.off::after { right: auto; left: 0.12em; }
+  .s-toggle { transition: background 0.3s; cursor: pointer; }
+  .phone.settled { animation: none !important; transition: transform 0.25s ease-out, box-shadow 0.3s; }
+  .phone-stage:hover .phone.tilt.settled { transform: none; }
+  .phone-row .phone.settled { transition: transform 0.25s ease-out; }
+
+  /* profil */
+  .s-avatar { width: 4.2em; height: 4.2em; border-radius: 50%; background: #1f2d4a; margin: 0.3em auto 0; border: 2px solid rgba(34,197,94,0.5); display: grid; place-items: center; box-shadow: 0 0 20px rgba(34,197,94,0.2); }
+  .s-avatar svg { width: 55%; height: 55%; color: var(--muted); }
+  .s-name { text-align: center; font-weight: 700; font-size: 1.05em; font-family: 'Sora', sans-serif; }
+  .s-team { text-align: center; font-size: 0.68em; color: var(--muted); margin-top: -0.5em; }
+  .s-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.55em; }
+  .s-stat { background: #152038; border-radius: 0.9em; padding: 0.6em; text-align: center; border: 1px solid rgba(255,255,255,0.07); }
+  .s-stat b { display: block; font-family: 'Sora', sans-serif; font-size: 1.35em; color: var(--green); }
+  .s-stat span { font-size: 0.6em; color: var(--muted); }
+  .s-list { display: flex; flex-direction: column; gap: 0.4em; }
+  .s-row { background: #152038; border-radius: 0.7em; padding: 0.55em 0.8em; font-size: 0.72em; display: flex; justify-content: space-between; align-items: center; border: 1px solid rgba(255,255,255,0.06); animation: screenIn 0.5s var(--ease) both; animation-delay: calc(var(--i) * 0.06s); }
+  .s-row span:last-child { color: var(--muted-2); }
+  .s-toggle { width: 2em; height: 1.1em; border-radius: 999px; background: var(--green); position: relative; }
+  .s-toggle::after { content: ''; position: absolute; right: 0.12em; top: 0.12em; width: 0.86em; height: 0.86em; border-radius: 50%; background: #fff; }
+
+  /* alsó navigáció */
+  .s-nav {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 12%;
+    padding: 0 8% 3% 8%;
+    background: linear-gradient(180deg, rgba(10,18,32,0), #0a1220 35%);
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 3;
+  }
+  .s-nav .ni {
+    width: 1.6em; height: 1.6em;
+    color: var(--muted-2);
+    display: grid; place-items: center;
+    cursor: pointer;
+    transition: color 0.3s, transform 0.3s;
+  }
+  .s-nav .ni:hover { color: var(--text); transform: translateY(-2px); }
+  .s-nav .ni svg { width: 100%; height: 100%; }
+  .s-nav .ni.on { color: var(--green); }
+  .s-nav .ni.scan {
+    width: 3.1em; height: 3.1em;
+    border-radius: 50%;
+    background: var(--green);
+    color: #04130a;
+    box-shadow: 0 0 0 4px rgba(34,197,94,0.2), 0 10px 25px rgba(34,197,94,0.45);
+    transform: translateY(-0.5em);
+    position: relative;
+  }
+  .s-nav .ni.scan::after {
+    content: '';
+    position: absolute; inset: -4px;
+    border-radius: 50%;
+    border: 2px solid var(--green);
+    opacity: 0;
+    animation: ring 2.4s infinite;
+  }
+  .s-nav .ni.scan:hover { transform: translateY(-0.6em) scale(1.05); }
+  .s-nav .ni.scan svg { width: 50%; height: 50%; }
+  @keyframes ring { 0% { transform: scale(0.8); opacity: 0.8 } 100% { transform: scale(1.7); opacity: 0 } }
+
+  /* telefon elhelyezések */
+  .phone-stage { display: flex; justify-content: center; align-items: center; position: relative; perspective: 1400px; }
+  .phone-stage .glow { position: absolute; width: 70%; height: 60%; border-radius: 50%; background: radial-gradient(circle, rgba(34,197,94,0.28), transparent 65%); filter: blur(30px); z-index: -1; }
+  .phone.tilt { transform: rotateY(-14deg) rotateX(4deg); transition: transform 0.9s var(--ease); }
+  .slide.active .phone.tilt { animation: phoneIn 1.2s var(--ease) both; }
+  @keyframes phoneIn { from { transform: rotateY(-28deg) rotateX(8deg) translateY(50px); opacity: 0; } to { transform: rotateY(-14deg) rotateX(4deg) translateY(0); opacity: 1; } }
+
+  .phone-row { display: flex; justify-content: center; align-items: flex-end; gap: 1.6vw; perspective: 1600px; }
+  .phone-row .phone { --pw: clamp(130px, 13.5vw, 230px); }
+  .phone-row .phone:nth-child(1) { transform: rotateY(18deg) translateY(10px); }
+  .phone-row .phone:nth-child(2) { transform: rotateY(9deg) translateY(4px); }
+  .phone-row .phone:nth-child(4) { transform: rotateY(-9deg) translateY(4px); }
+  .phone-row .phone:nth-child(5) { transform: rotateY(-18deg) translateY(10px); }
+  .phone-row .phone:nth-child(3) { transform: translateY(-14px) scale(1.04); box-shadow: 0 0 0 2px #0a0f1b, 0 50px 100px rgba(0,0,0,0.65), 0 0 90px rgba(34,197,94,0.28); }
+
+  /* feature lista a telefon mellett */
+  .feat-list { display: flex; flex-direction: column; gap: 1.4vh; margin-top: 2vh; }
+  .feat {
+    display: flex; gap: 1.1vw; align-items: flex-start;
+    padding: 1.6vh 1.2vw;
+    border-radius: 18px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,0.025);
+    transition: border-color 0.4s, background 0.4s, transform 0.4s;
+  }
+  .feat:hover { border-color: rgba(34,197,94,0.4); background: rgba(34,197,94,0.05); transform: translateX(6px); }
+  .feat .n {
+    flex-shrink: 0;
+    width: clamp(34px, 2.6vw, 48px); height: clamp(34px, 2.6vw, 48px);
+    border-radius: 12px;
+    background: var(--green-dim);
+    border: 1px solid rgba(34,197,94,0.35);
+    color: var(--green);
+    font-family: 'Sora', sans-serif; font-weight: 800;
+    display: grid; place-items: center;
+    font-size: calc(clamp(0.9rem, 1vw, 1.4rem) * var(--font-scale));
+  }
+  .feat .n svg { width: 55%; height: 55%; }
+  .feat h3 { margin-bottom: 0.3vh; }
+  .feat p { color: var(--muted); font-size: calc(clamp(0.9rem, 1.05vw, 1.55rem) * var(--font-scale)); line-height: 1.5; }
+
+  /* FOLYAMAT – lépések */
+  .flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 0; position: relative; width: 100%; margin-top: 3vh; }
+  .flow::before {
+    content: '';
+    position: absolute; top: clamp(30px, 3vw, 56px); left: 8%; right: 8%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(34,197,94,0.5), transparent);
+  }
+  .flow .line {
+    position: absolute; top: clamp(30px, 3vw, 56px); left: 8%;
+    height: 2px; width: 0;
+    background: var(--green);
+    box-shadow: 0 0 14px var(--green);
+    transition: width 2.2s var(--ease) 0.4s;
+  }
+  .slide.active .flow .line { width: 84%; }
+  .step { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1.2vh; padding: 0 0.6vw; position: relative; }
+  .step .orb {
+    width: clamp(60px, 6vw, 112px); height: clamp(60px, 6vw, 112px);
+    border-radius: 50%;
+    background: var(--card);
+    border: 2px solid rgba(34,197,94,0.35);
+    display: grid; place-items: center;
+    color: var(--green);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    position: relative;
+    transition: transform 0.4s var(--ease), box-shadow 0.4s;
+  }
+  .step .orb svg { width: 46%; height: 46%; }
+  .step:hover .orb { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(34,197,94,0.12), 0 10px 40px rgba(34,197,94,0.35); }
+  .step .orb .k { position: absolute; top: -8px; right: -8px; width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--green); color: #04130a; font-size: 0.8em; font-weight: 800; display: grid; place-items: center; }
+  .step h3 { font-size: calc(clamp(0.95rem, 1.15vw, 1.7rem) * var(--font-scale)); }
+  .step p { color: var(--muted); font-size: calc(clamp(0.78rem, 0.88vw, 1.3rem) * var(--font-scale)); line-height: 1.45; }
+
+  /* SZÍNPALETTA */
+  .palette { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1vw; width: 100%; }
+  .swatch {
+    border-radius: 18px;
+    padding: 1.4vh 1vw;
+    border: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: 1vh;
+    min-height: 16vh;
+    justify-content: flex-end;
+    transition: transform 0.4s var(--ease);
+  }
+  .swatch:hover { transform: translateY(-6px) scale(1.02); }
+  .swatch b { font-family: 'Sora', sans-serif; font-size: calc(clamp(0.85rem, 0.95vw, 1.4rem) * var(--font-scale)); }
+  .swatch span { font-size: calc(clamp(0.72rem, 0.8vw, 1.15rem) * var(--font-scale)); opacity: 0.75; font-family: monospace; }
+
+  /* ÖSSZEHASONLÍTÁS – drótváz vs kész */
+  .compare { display: grid; grid-template-columns: 1fr auto 1fr; gap: 2vw; align-items: center; }
+  .compare .arrow { color: var(--green); width: clamp(40px, 4vw, 80px); height: clamp(40px, 4vw, 80px); animation: nudge 1.6s ease-in-out infinite; }
+  @keyframes nudge { 0%,100% { transform: translateX(0) } 50% { transform: translateX(10px) } }
+  .wire { --pw: clamp(190px, 16vw, 280px); background: #f3f4f6; border-color: #d1d5db; color: #111827; box-shadow: 0 30px 70px rgba(0,0,0,0.5); }
+  .wire::before { background: #1f2937; }
+  .wire .wscreen { position: absolute; inset: 0; padding: 12% 8% 16% 8%; display: flex; flex-direction: column; gap: 0.7em; }
+  .wire .wb { background: #e5e7eb; border: 1.5px dashed #9ca3af; border-radius: 0.6em; }
+  .wire .wb.h { height: 1.6em; width: 60%; }
+  .wire .wb.big { flex: 1; position: relative; }
+  .wire .wb.big::before, .wire .wb.big::after { content: ''; position: absolute; left: 8%; right: 8%; top: 50%; height: 1.5px; background: #9ca3af; transform: rotate(30deg); }
+  .wire .wb.big::after { transform: rotate(-30deg); }
+  .wire .wb.btn { height: 2em; background: #22c55e; border: 0; }
+  .wire .wb.row { height: 1.1em; }
+  .wire .wnav { position: absolute; left: 0; right: 0; bottom: 0; height: 10%; background: #e5e7eb; border-top: 1.5px dashed #9ca3af; display: flex; justify-content: space-around; align-items: center; }
+  .wire .wnav i { width: 1em; height: 1em; border-radius: 50%; border: 1.5px solid #9ca3af; }
+  .wire .wnav i:nth-child(3) { width: 1.9em; height: 1.9em; background: #22c55e; border: 0; }
+  .compare-label { text-align: center; margin-top: 1.5vh; color: var(--muted); font-weight: 600; font-size: calc(clamp(0.9rem, 1vw, 1.5rem) * var(--font-scale)); }
+
+  /* ZÁRÓ DIA */
+  .cta-row { display: flex; gap: 1vw; flex-wrap: wrap; margin-top: 2vh; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.6em;
+    padding: 0.8em 1.5em;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: calc(clamp(0.9rem, 1.05vw, 1.5rem) * var(--font-scale));
+    border: 1px solid rgba(34,197,94,0.4);
+    color: var(--green);
+    background: var(--green-dim);
+    cursor: pointer;
+    transition: all 0.3s var(--ease);
+    text-decoration: none;
+  }
+  .btn.primary { background: var(--green); color: #04130a; box-shadow: 0 10px 30px rgba(34,197,94,0.35); }
+  .btn:hover { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(34,197,94,0.4); }
+
+  /* Kiemelt idézet */
+  .quote {
+    border-left: 3px solid var(--green);
+    padding-left: 1.2vw;
+    color: var(--muted);
+    font-style: italic;
+    font-size: calc(clamp(1rem, 1.25vw, 1.8rem) * var(--font-scale));
+    line-height: 1.5;
+  }
+
+  /* =========================================================
+     VEZÉRLŐK
+     ========================================================= */
+  #controls {
+    position: fixed;
+    bottom: 2.4vh;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.5vw;
+    padding: 0.7vh 0.8vw;
+    background: rgba(13, 21, 38, 0.75);
+    border: 1px solid var(--line-2);
+    border-radius: 999px;
+    backdrop-filter: blur(14px);
+    z-index: 200;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+  #controls button {
+    font-family: 'Inter', sans-serif;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--muted);
+    width: clamp(34px, 2.6vw, 46px);
+    height: clamp(34px, 2.6vw, 46px);
+    border-radius: 50%;
+    display: grid; place-items: center;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: clamp(0.8rem, 0.9vw, 1.1rem);
+    transition: all 0.25s;
+  }
+  #controls button:hover { color: var(--text); background: rgba(255,255,255,0.06); border-color: var(--line); }
+  #controls button.go { color: #04130a; background: var(--green); box-shadow: 0 6px 20px rgba(34,197,94,0.35); }
+  #controls button.go:hover { background: #34d399; }
+  #controls button svg { width: 48%; height: 48%; }
+  #counter { color: var(--muted); font-weight: 600; font-size: clamp(0.8rem, 0.9vw, 1.1rem); min-width: 5ch; text-align: center; font-variant-numeric: tabular-nums; }
+  #controls .sep { width: 1px; height: 22px; background: var(--line-2); margin: 0 0.3vw; }
+
+  #dots {
+    position: fixed;
+    right: 1.6vw;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex; flex-direction: column; gap: 10px;
+    z-index: 200;
+  }
+  #dots button {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: 0;
+    background: rgba(255,255,255,0.18);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.35s var(--ease);
+  }
+  #dots button.on { background: var(--green); box-shadow: 0 0 12px var(--green); transform: scale(1.4); }
+  #dots button:hover { background: var(--green); }
+  #dots button::after {
+    content: attr(data-title);
+    position: absolute;
+    right: 20px; top: 50%;
+    transform: translateY(-50%) translateX(6px);
+    white-space: nowrap;
+    font-size: 0.8rem;
+    color: var(--text);
+    background: rgba(13,21,38,0.9);
+    border: 1px solid var(--line-2);
+    border-radius: 8px;
+    padding: 4px 10px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s;
+  }
+  #dots button:hover::after { opacity: 1; transform: translateY(-50%) translateX(0); }
+
+  #brand {
+    position: fixed;
+    top: 2.2vh; left: 2vw;
+    display: flex; align-items: center; gap: 0.6vw;
+    z-index: 200;
+    font-family: 'Sora', sans-serif;
+    font-weight: 700;
+    font-size: clamp(0.9rem, 1vw, 1.3rem);
+    color: var(--text);
+    opacity: 0.9;
+  }
+  #brand .logo-mini { width: 1.6em; height: 1.6em; }
+  #brand span small { display: block; font-family: 'Inter', sans-serif; font-weight: 500; font-size: 0.65em; color: var(--muted); }
+
+  #hint {
+    position: fixed;
+    top: 2.2vh; right: 2vw;
+    z-index: 200;
+    font-size: clamp(0.72rem, 0.8vw, 1rem);
+    color: var(--muted);
+    display: flex; gap: 0.6em; align-items: center;
+    transition: opacity 0.6s;
+  }
+  #hint kbd {
+    font-family: 'Inter', sans-serif;
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--line-2);
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    font-size: 0.9em;
+  }
+  #hint.hide { opacity: 0; }
+
+  /* ÁTTEKINTŐ NÉZET */
+  #overview {
+    position: fixed; inset: 0;
+    background: rgba(5, 9, 18, 0.92);
+    backdrop-filter: blur(16px);
+    z-index: 300;
+    display: none;
+    padding: 6vh 5vw;
+    overflow-y: auto;
+  }
+  #overview.open { display: block; animation: screenIn 0.4s var(--ease); }
+  #overview h3 { margin-bottom: 2vh; color: var(--muted); font-weight: 500; }
+  #overview .ov-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1vw; }
+  #overview .ov {
+    aspect-ratio: 16/9;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 1.2em;
+    display: flex; flex-direction: column; justify-content: flex-end; gap: 0.3em;
+    cursor: pointer;
+    transition: all 0.3s var(--ease);
+    position: relative;
+    overflow: hidden;
+  }
+  #overview .ov::before { content: attr(data-n); position: absolute; top: 0.8em; left: 1em; color: var(--green); font-family: 'Sora', sans-serif; font-weight: 800; font-size: 1.3em; opacity: 0.6; }
+  #overview .ov:hover, #overview .ov.on { border-color: var(--green); transform: translateY(-4px); box-shadow: 0 0 0 1px var(--green), 0 20px 40px rgba(0,0,0,0.5); }
+  #overview .ov b { font-family: 'Sora', sans-serif; font-size: 0.95em; }
+  #overview .ov span { font-size: 0.75em; color: var(--muted); }
+
+  /* reduced motion */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  }
+
+  /* kisebb kijelzők */
+  @media (max-width: 900px) {
+    body { overflow: auto; height: auto; }
+    .slide { position: relative; opacity: 1; transform: none; filter: none; pointer-events: auto; min-height: 100vh; padding: 8vh 6vw; }
+    .slide .reveal { opacity: 1; transform: none; }
+    .split, .split.rev, .grid-2, .grid-3, .grid-4, .grid-5, .palette, .compare { grid-template-columns: 1fr; }
+    .flow { grid-template-columns: repeat(2, 1fr); gap: 3vh; }
+    .flow::before, .flow .line { display: none; }
+    .phone-row { flex-wrap: wrap; }
+    .phone-row .phone { transform: none !important; }
+    #dots, #hint, #morph-bar, #morph-circle { display: none; }
+    .compare .arrow { transform: rotate(90deg); margin: 0 auto; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-track"><div id="progress-fill"></div></div>
+
+<div id="brand">
+  <span class="logo-mini"><svg viewBox="0 0 64 64" fill="none" stroke="#16a34a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M32 30 L8 48 H56 Z"/><path d="M32 30 V22"/><path d="M32 22 C32 14 38 10 44 10 C44 18 40 24 32 22 Z" fill="#16a34a" stroke="none"/></svg></span>
+  <span>EcoSzett <small>Gipsy Systems KFT.</small></span>
+</div>
+
+<div id="hint"><kbd>→</kbd> tovább <kbd>F</kbd> teljes képernyő <kbd>O</kbd> áttekintés</div>
+
+<div id="stage">
+  <div id="grid-bg"></div>
+  <canvas id="particles"></canvas>
+  <div id="morph-circle"></div>
+  <div id="morph-bar"></div>
+
+  <!-- ============ 1. CÍMDIA ============ -->
+  <section class="slide active" data-title="Címdia" data-circle="left:56vw; top:4vh; width:44vw; height:44vw;">
+    <div class="slide-inner">
+      <div class="split">
+        <div>
+          <div class="kicker reveal" style="--d:0.1s">Vállalkozz a jövőért! · 1. heti leadandó</div>
+          <h1 class="reveal" style="--d:0.2s"><span class="grad">EcoSzett</span><br>Az okosgardrób,<br>ami a bolygóért dolgozik.</h1>
+          <div class="morph-anchor"></div>
+          <p class="lead reveal" style="--d:0.4s">Digitalizáld a ruháidat, kapj <strong>napi szett ajánlót</strong> a meglévő darabjaidból, és add tovább egy gombnyomással, amit már nem hordasz. Kevesebb fast fashion, több tudatosság.</p>
+          <div class="cta-row reveal" style="--d:0.55s">
+            <span class="pill"><i class="dot"></i> Gipsy Systems KFT.</span>
+            <span class="pill">Biró Botond · Lavner Szabolcs · Nagy Gergő</span>
+          </div>
+        </div>
+        <div class="reveal zoom" style="--d:0.3s">
+          <div class="logo-wrap">
+            <div class="logo-tile">
+              <svg viewBox="0 0 64 64" fill="none" stroke="#16a34a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+                <path class="draw" d="M32 30 L8 48 H56 Z"/>
+                <path class="draw" d="M32 30 V22"/>
+                <path class="draw d2" d="M32 22 C32 14 38 10 44 10 C44 18 40 24 32 22 Z"/>
+                <path class="draw d2" d="M34 20 L42 12"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2. A CSAPAT ============ -->
+  <section class="slide" data-title="A csapat" data-circle="left:10vw; top:30vh; width:40vw; height:40vw;">
+    <div class="slide-inner">
+      <div class="kicker reveal">Csapatadatok</div>
+      <h2 class="reveal" style="--d:0.1s">Gipsy Systems <span class="grad">KFT.</span></h2>
+      <div class="morph-anchor"></div>
+      <p class="lead reveal" style="--d:0.2s">Három alapító, egy közös cél: a ruhatár legyen átlátható, a fast fashion pedig a múlté.</p>
+      <div class="grid-3" style="margin-top:4vh">
+        <div class="card member reveal" style="--d:0.3s">
+          <div class="avatar">BB</div>
+          <h3>Biró Botond</h3>
+          <div class="role">Termék & UX dizájn</div>
+          <p>Az app látványterve, képernyőfolyamatai és a „kevesebb néha több” elv őre.</p>
+        </div>
+        <div class="card member reveal" style="--d:0.42s">
+          <div class="avatar">LSz</div>
+          <h3>Lavner Szabolcs</h3>
+          <div class="role">Fejlesztés & AI felismerés</div>
+          <p>A fotóalapú ruhafelismerés és a szett-ajánló logika technikai gazdája.</p>
+        </div>
+        <div class="card member reveal" style="--d:0.54s">
+          <div class="avatar">NG</div>
+          <h3>Nagy Gergő</h3>
+          <div class="role">Üzlet & piactér</div>
+          <p>A csere-eladás mechanika, a közösségi piactér és a fenntarthatósági üzenet felelőse.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3. A PROBLÉMA ============ -->
+  <section class="slide" id="slide-problem" data-title="A probléma" data-circle="left:60vw; top:10vh; width:42vw; height:42vw;">
+    <div class="slide-inner">
+      <div class="kicker reveal">⚠ A választott probléma</div>
+      <h2 class="reveal" style="--d:0.1s">A fast fashion <span class="grad">hegyeket</span> épít textilhulladékból.</h2>
+      <div class="morph-anchor"></div>
+      <p class="lead reveal" style="--d:0.2s">A gyorsan cserélődő kollekciók felhalmozódó textilhulladékot és környezetszennyezést okoznak, miközben az otthoni ruhatárak átláthatatlanok: a legtöbben azt sem tudjuk pontosan, mi lóg a szekrényünkben.</p>
+      <div class="grid-4" style="margin-top:4vh">
+        <div class="card stat reveal" style="--d:0.3s">
+          <div class="big"><span data-count="92" data-suffix="">0</span><small>M tonna</small></div>
+          <div class="lbl">textilhulladék évente, világszerte</div>
+          <div class="src">Forrás: Ellen MacArthur Foundation</div>
+        </div>
+        <div class="card stat reveal" style="--d:0.4s">
+          <div class="big">&lt;<span data-count="1">0</span><small>%</small></div>
+          <div class="lbl">lesz újra ruha a kidobott textilből</div>
+          <div class="src">Forrás: Ellen MacArthur Foundation</div>
+        </div>
+        <div class="card stat reveal" style="--d:0.5s">
+          <div class="big"><span data-count="2700">0</span><small>liter</small></div>
+          <div class="lbl">víz egyetlen pamutpóló előállításához</div>
+          <div class="src">Forrás: WWF</div>
+        </div>
+        <div class="card stat reveal" style="--d:0.6s">
+          <div class="big"><span data-count="20">0</span><small>%</small></div>
+          <div class="lbl">a ruhatárunkból, amit rendszeresen hordunk</div>
+          <div class="src">Iparági becslés („20/80 szabály”)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4. A MEGOLDÁS ============ -->
+  <section class="slide" data-title="A megoldás" data-circle="left:4vw; top:36vh; width:40vw; height:40vw;">
+    <div class="slide-inner">
+      <div class="split">
+        <div>
+          <div class="kicker reveal">🌱 A megoldás</div>
+          <h2 class="reveal" style="--d:0.1s">EcoSzett: a szekrényed <span class="grad">okosabb</span>, mint gondolnád.</h2>
+          <div class="morph-anchor"></div>
+          <p class="lead reveal" style="--d:0.2s">Egy okosgardrób alkalmazás, amely <strong>fotó alapján digitalizálja</strong> a meglévő ruhadarabokat, <strong>automatikus szett-ajánlásokkal</strong> ösztönöz a használatukra, és <strong>integrált piacterén</strong> egy gombnyomással eladóvá vagy cserélhetővé teszi azokat, amiket a rendszer szerint már nagyon rég vagy nagyon ritkán viselsz.</p>
+          <div class="feat-list">
+            <div class="feat reveal from-left" style="--d:0.35s">
+              <div class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+              <div><h3>Digitalizálás fotóval</h3><p>Lefotózod, az AI felismeri a típust és a színt, a darab bekerül a digitális gardróbba.</p></div>
+            </div>
+            <div class="feat reveal from-left" style="--d:0.47s">
+              <div class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 4.9L20 8l-4 3.9.9 5.4L12 14.8 7.1 17.3 8 11.9 4 8l5.6-1.1z"/></svg></div>
+              <div><h3>Napi szett ajánló</h3><p>Minden reggel a saját ruháidból áll össze a szett – vásárlás nélkül érzed frissnek a stílusod.</p></div>
+            </div>
+            <div class="feat reveal from-left" style="--d:0.59s">
+              <div class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
+              <div><h3>Csere és eladás egy gombbal</h3><p>Amit rég nem hordtál, azt az app maga javasolja a piactérre – így nem lesz belőle hulladék.</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-stage reveal" style="--d:0.3s">
+          <div class="glow"></div>
+          <div class="phone tilt" data-screen="home"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. HOGYAN MŰKÖDIK ============ -->
+  <section class="slide" data-title="Hogyan működik" data-circle="left:30vw; top:50vh; width:44vw; height:44vw;">
+    <div class="slide-inner">
+      <div class="kicker reveal">A felhasználói út</div>
+      <h2 class="reveal" style="--d:0.1s">A szekrénytől a <span class="grad">körforgásig</span> hat lépésben</h2>
+      <div class="morph-anchor"></div>
+      <div class="flow">
+        <div class="line"></div>
+        <div class="step reveal" style="--d:0.2s">
+          <div class="orb"><span class="k">1</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+          <h3>Fotózás</h3><p>A középső zöld gombbal nyílik a kamera.</p>
+        </div>
+        <div class="step reveal" style="--d:0.3s">
+          <div class="orb"><span class="k">2</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 0 6h-1v1a4 4 0 0 1-8 0v-1H7a3 3 0 0 1 0-6h1V6a4 4 0 0 1 4-4z"/><path d="M9 20h6"/></svg></div>
+          <h3>AI felismerés</h3><p>Valós időben: „Pulóver”, „Fekete”.</p>
+        </div>
+        <div class="step reveal" style="--d:0.4s">
+          <div class="orb"><span class="k">3</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+          <h3>Digitális gardrób</h3><p>Rácsnézet, kereső, szűrő címkék.</p>
+        </div>
+        <div class="step reveal" style="--d:0.5s">
+          <div class="orb"><span class="k">4</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 4.9L20 8l-4 3.9.9 5.4L12 14.8 7.1 17.3 8 11.9 4 8l5.6-1.1z"/></svg></div>
+          <h3>Napi szett</h3><p>Ajánló a saját darabjaidból.</p>
+        </div>
+        <div class="step reveal" style="--d:0.6s">
+          <div class="orb"><span class="k">5</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div>
+          <h3>Ritkán hordott</h3><p>A rendszer jelzi, mit nem viselsz.</p>
+        </div>
+        <div class="step reveal" style="--d:0.7s">
+          <div class="orb"><span class="k">6</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
+          <h3>Piactér</h3><p>Csere vagy eladás egy gombbal.</p>
+        </div>
+      </div>
+      <p class="quote reveal" style="--d:0.85s; margin-top:4vh">„Nem újat venni, hanem a meglévőt okosan használni – ez az EcoSzett alapgondolata.”</p>
+    </div>
+  </section>
+
+  <!-- ============ 6. AZ APP FELÉPÍTÉSE – ÁTTEKINTÉS ============ -->
+  <section class="slide" data-title="Az app felépítése" data-circle="left:28vw; top:8vh; width:44vw; height:44vw;">
+    <div class="slide-inner">
+      <div class="kicker reveal">A mobilapp felépítése</div>
+      <h2 class="reveal" style="--d:0.1s">Öt képernyő, <span class="grad">egy alsó menüsáv</span>, középen a szkennelés</h2>
+      <div class="morph-anchor"></div>
+      <div class="phone-row reveal" style="--d:0.25s; margin-top:1vh">
+        <div class="phone" data-screen="home"></div>
+        <div class="phone" data-screen="wardrobe"></div>
+        <div class="phone" data-screen="scan"></div>
+        <div class="phone" data-screen="market"></div>
+        <div class="phone" data-screen="profile"></div>
+      </div>
+      <div class="grid-5 reveal" style="--d:0.5s; margin-top:2.5vh; text-align:center">
+        <div><h3>Kezdőlap</h3><p style="color:var(--muted)">Személyes műszerfal</p></div>
+        <div><h3>Digitális Gardrób</h3><p style="color:var(--muted)">Rácsnézet + szűrők</p></div>
+        <div><h3 class="accent">Szkennelés</h3><p style="color:var(--muted)">Az app „lelke”</p></div>
+        <div><h3>Piactér</h3><p style="color:var(--muted)">Swipe csere/eladás</p></div>
+        <div><h3>Profil</h3><p style="color:var(--muted)">Statisztikák, beállítások</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 7. KEZDŐLAP ============ -->
+  <section class="slide" data-title="Kezdőlap" data-circle="left:58vw; top:14vh; width:40vw; height:40vw;">
+    <div class="slide-inner">
+      <div class="split rev">
+        <div class="phone-stage reveal" style="--d:0.25s">
+          <div class="glow"></div>
+          <div class="phone tilt" data-screen="home"></div>
+        </div>
+        <div>
+          <div class="kicker reveal">1 / 5 · Home · bal szélső ikon</div>
+          <h2 class="reveal" style="--d:0.1s">Kezdőlap: a személyes <span class="grad">műszerfalad</span></h2>
+          <div class="morph-anchor"></div>
+          <div class="feat-list">
+            <div class="feat reveal from-right" style="--d:0.3s">
+              <div class="n">1</div>
+              <div><h3>Üdvözlés a neveddel + Öko Pont</h3><p>„Szia, Botond!” – mellette a gamifikált <strong>Öko Pont</strong> jelvény, ami minden megmentett ruháért és cseréért nő.</p></div>
+            </div>
+            <div class="feat reveal from-right" style="--d:0.42s">
+              <div class="n">2</div>
+              <div><h3>Napi Szett Ajánló kártya</h3><p>Egy hatalmas kártya generálja a napi szettet a meglévő ruháidból – stilizált póló ikonnal és egy zöld „Felveszem” gombbal.</p></div>
+            </div>
+            <div class="feat reveal from-right" style="--d:0.54s">
+              <div class="n">3</div>
+              <div><h3>Gardrób kihasználtság</h3><p>Legalul egy oszlopdiagram mutatja, a szekrényed mekkora részét hordod ténylegesen – és mi vár a piactérre.</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 8. DIGITÁLIS GARDRÓB ============ -->
+  <section class="slide" data-title="Digitális Gardrób" data-circle="left:6vw; top:12vh; width:40vw; height:40vw;">
+    <div class="slide-inner">
+      <div class="split">
+        <div>
+          <div class="kicker reveal">2 / 5 · Wardrobe</div>
+          <h2 class="reveal" style="--d:0.1s">Digitális Gardrób: <span class="grad">Pinterest-szerű</span> rács a saját ruháidból</h2>
+          <div class="morph-anchor"></div>
+          <div class="feat-list">
+            <div class="feat reveal from-left" style="--d:0.3s">
+              <div class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></div>
+              <div><h3>Keresősáv</h3><p>Felül azonnali keresés név, szín vagy kategória szerint.</p></div>
+            </div>
+            <div class="feat reveal from-left" style="--d:0.42s">
+              <div class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3H2l8 9.5V19l4 2v-8.5z"/></svg></div>
+              <div><h3>Szűrő címkék (chips)</h3><p><strong>Összes</strong> · Téli · Felsők · Nadrágok – prémium webshopok logikája, egy koppintással.</p></div>
+            </div>
+            <div class="feat reveal from-left" style="--d:0.54s">
+              <div class="n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+              <div><h3>Rácsos elrendezés viselési adattal</h3><p>Minden kártyán látszik, mikor hordtad utoljára – ebből tudja az app, mi vár a piactérre.</p></div>
+            </div>
+          </div>
+        </div>
+        <div class="phone-stage reveal" style="--d:0.25s">
+          <div class="glow"></div>
+          <div class="phone tilt" data-screen="wardrobe"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 9. SZKENNELÉS ============ -->
+  <section class="slide" data-title="Szkennelés" data-circle="left:58vw; top:18vh; width:42vw; height:42vw;">
+    <div class="slide-inner">
+      <div class="split rev">
+        <div class="phone-stage reveal" style="--d:0.25s">
+          <div class="glow"></div>
+          <div class="phone tilt" data-screen="scan"></div>
+        </div>
+        <div>
+          <div class="kicker reveal">3 / 5 · Kamera · középső, kiemelt gomb</div>
+          <h2 class="reveal" style="--d:0.1s">Szkennelés: az app <span class="grad">„lelke”</span></h2>
+          <div class="morph-anchor"></div>
+          <p class="lead reveal" style="--d:0.2s">A középső zöld gombra bökve megnyílik a kamera, amelyet <strong>négy zöld sarokjelző</strong> keretez. Ahogy fotózod a ruhát, a mesterséges intelligencia valós időben ismeri fel: típus, szín, kategória.</p>
+          <div class="grid-2" style="margin-top:3vh">
+            <div class="card reveal" style="--d:0.35s">
+              <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v1h1a3 3 0 0 1 0 6h-1v1a4 4 0 0 1-8 0v-1H7a3 3 0 0 1 0-6h1V6a4 4 0 0 1 4-4z"/><path d="M9 20h6"/></svg></div>
+              <h3>Valós idejű AI címkézés</h3>
+              <p>„Pulóver”, „Fekete” – nem kell kézzel adatot bevinni, a rendszer automatikusan kategorizál.</p>
+            </div>
+            <div class="card reveal" style="--d:0.47s">
+              <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4z"/><path d="M14 4h6v6h-6z"/><path d="M4 14h6v6H4z"/><path d="M14 14h6v6h-6z"/></svg></div>
+              <h3>Rendszerszintű automatizálás</h3>
+              <p>Ugyanaz az okos logika, amit CRM rendszerek és webshop integrációk is használnak – csak a szekrényedre szabva.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 10. PIACTÉR ============ -->
+  <section class="slide" data-title="Piactér" data-circle="left:8vw; top:20vh; width:40vw; height:40vw;">
+    <div class="slide-inner">
+      <div class="split">
+        <div>
+          <div class="kicker reveal">4 / 5 · Marketplace</div>
+          <h2 class="reveal" style="--d:0.1s">Piactér: a <span class="grad">Vinted-élmény</span> modernizálva</h2>
+          <div class="morph-anchor"></div>
+          <p class="lead reveal" style="--d:0.2s">A közeledben lévő másodkézi ruhákat egy hatalmas kártyán dobja fel az app. A leírásban látszik az ár és a csere lehetősége – alatta a jól ismert Tinder-mechanika.</p>
+          <div class="grid-2" style="margin-top:3vh">
+            <div class="card reveal" style="--d:0.35s">
+              <div class="icon" style="color:var(--red); background:rgba(239,68,68,0.12); border-color:rgba(239,68,68,0.35)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg></div>
+              <h3>Piros X – nem kérem</h3>
+              <p>Balra húzás: a kártya eltűnik, jön a következő találat a közeledből.</p>
+            </div>
+            <div class="card reveal" style="--d:0.47s">
+              <div class="icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2 4.4-9.5 9-9.5 9z"/></svg></div>
+              <h3>Zöld szív – érdekel / csere</h3>
+              <p>Jobbra húzás: ajánlatot teszel – cserélsz a saját gardróbodból, vagy megveszed.</p>
+            </div>
+          </div>
+          <div class="cta-row reveal" style="--d:0.6s">
+            <span class="pill"><i class="dot"></i> Közeledben lévő hirdetések</span>
+            <span class="pill">Ár vagy csere</span>
+            <span class="pill">Gyors döntés swipe-pal</span>
+          </div>
+        </div>
+        <div class="phone-stage reveal" style="--d:0.25s">
+          <div class="glow"></div>
+          <div class="phone tilt" data-screen="market"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 11. PROFIL ============ -->
+  <section class="slide" id="slide-profile" data-title="Profil" data-circle="left:58vw; top:26vh; width:40vw; height:40vw;">
+    <div class="slide-inner">
+      <div class="split rev">
+        <div class="phone-stage reveal" style="--d:0.25s">
+          <div class="glow"></div>
+          <div class="phone tilt" data-screen="profile"></div>
+        </div>
+        <div>
+          <div class="kicker reveal">5 / 5 · Profil · jobb szélső ikon</div>
+          <h2 class="reveal" style="--d:0.1s">Profil: a <span class="grad">büszkeségeid</span> számokban</h2>
+          <div class="morph-anchor"></div>
+          <p class="lead reveal" style="--d:0.2s">Személyes és csapatadatok, két kiemelt statisztikai blokk, alatta a klasszikus beállítások.</p>
+          <div class="grid-2" style="margin-top:3vh">
+            <div class="card stat reveal" style="--d:0.35s">
+              <div class="big"><span data-count="12">0</span></div>
+              <div class="lbl">Megmentett ruha</div>
+              <div class="src">Darab, amit nem dobtál ki, hanem újra hordasz vagy továbbadtál</div>
+            </div>
+            <div class="card stat reveal" style="--d:0.47s">
+              <div class="big"><span data-count="3">0</span></div>
+              <div class="lbl">Sikeres csere</div>
+              <div class="src">A piactéren lezárt cserék száma</div>
+            </div>
+          </div>
+          <div class="cta-row reveal" style="--d:0.6s">
+            <span class="pill">Saját hirdetések</span>
+            <span class="pill">Beállítások</span>
+            <span class="pill">Értesítések</span>
+            <span class="pill">Sötét mód</span>
+            <span class="pill">Súgó</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 12. INTERAKTÍV PROTOTÍPUS ============ -->
+  <section class="slide" id="slide-proto" data-title="Interaktív prototípus" data-circle="left:30vw; top:12vh; width:42vw; height:42vw;">
+    <div class="slide-inner">
+      <div class="split">
+        <div>
+          <div class="kicker reveal">Élő demó</div>
+          <h2 class="reveal" style="--d:0.1s">Próbáld ki: <span class="grad">kattintható</span> prototípus</h2>
+          <div class="morph-anchor"></div>
+          <p class="lead reveal" style="--d:0.2s">Minden telefon kattintható: menüsáv, szűrő címkék, „Felveszem” gomb, X / szív a piactéren, kapcsolók – és az egérre 3D-ben dőlnek. A középső zöld gomb mindig a szkennelést nyitja – ez a legfontosabb interakció.</p>
+          <div class="cta-row reveal" style="--d:0.35s" id="proto-buttons">
+            <button class="btn" data-go="home">Kezdőlap</button>
+            <button class="btn" data-go="wardrobe">Gardrób</button>
+            <button class="btn primary" data-go="scan">Szkennelés</button>
+            <button class="btn" data-go="market">Piactér</button>
+            <button class="btn" data-go="profile">Profil</button>
+          </div>
+          <p class="quote reveal" style="--d:0.5s; margin-top:3vh">Az ismerős navigációs minták miatt a felhasználónak nem kell újratanulnia a telefonját.</p>
+        </div>
+        <div class="phone-stage reveal zoom" style="--d:0.25s">
+          <div class="glow"></div>
+          <div class="phone" id="proto-phone" data-screen="home" data-interactive="1"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 13. DRÓTVÁZTÓL A KÉSZ DIZÁJNIG ============ -->
+  <section class="slide" data-title="Drótváztól a dizájnig" data-circle="left:56vw; top:30vh; width:40vw; height:40vw;">
+    <div class="slide-inner">
+      <div class="kicker reveal">Tervezési folyamat</div>
+      <h2 class="reveal" style="--d:0.1s">A kezdeti drótváztól a <span class="grad">kész arculatig</span></h2>
+      <div class="morph-anchor"></div>
+      <div class="compare" style="margin-top:2vh">
+        <div class="reveal from-left" style="--d:0.25s">
+          <div class="phone-stage">
+            <div class="phone wire">
+              <div class="wscreen">
+                <div class="wb h"></div>
+                <div class="wb big"></div>
+                <div class="wb btn"></div>
+                <div class="wb row"></div>
+                <div class="wb row" style="width:70%"></div>
+              </div>
+              <div class="wnav"><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+          </div>
+          <div class="compare-label">Kezdeti drótváz – szerkezet, hierarchia, navigáció</div>
+        </div>
+        <svg class="arrow reveal" style="--d:0.45s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        <div class="reveal from-right" style="--d:0.35s">
+          <div class="phone-stage">
+            <div class="glow"></div>
+            <div class="phone" data-screen="home" style="--pw: clamp(190px, 16vw, 280px)"></div>
+          </div>
+          <div class="compare-label">Kész dizájn – prémium sötét mód, smaragdzöld akcentus</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 14. DIZÁJN ELVEK ============ -->
+  <section class="slide" data-title="UI/UX dizájn elvek" data-circle="left:4vw; top:8vh; width:42vw; height:42vw;">
+    <div class="slide-inner">
+      <div class="kicker reveal">Vizuális arculat és UI/UX</div>
+      <h2 class="reveal" style="--d:0.1s">„Kevesebb néha több” – <span class="grad">négy alapelv</span></h2>
+      <div class="morph-anchor"></div>
+      <p class="lead reveal" style="--d:0.2s">A felhasználók a saját, sokszínű ruháikat töltik fel – ezért egy letisztult, minimalista keret kell, ami nem nyomja el, hanem engedi érvényesülni a tartalmat.</p>
+      <div class="grid-4" style="margin-top:3.5vh">
+        <div class="card reveal" style="--d:0.3s">
+          <div class="num">01</div>
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></div>
+          <h3>Prémium Dark Mode</h3>
+          <p>Mély palaszürke / éjkék alap. Kevesebb szemkáprázás, több fókusz a ruhákon – és OLED kijelzőn akkumulátort spórol, ami egybecseng az öko küldetéssel.</p>
+        </div>
+        <div class="card reveal" style="--d:0.42s">
+          <div class="num">02</div>
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg></div>
+          <h3>Smaragdzöld akcentus</h3>
+          <p>Egyetlen domináns szín a monokróm háttéren. Csak a legfontosabb gombok kapják meg (szkennelés, elfogadás) – a szem azonnal tudja, hova kattintson.</p>
+        </div>
+        <div class="card reveal" style="--d:0.54s">
+          <div class="num">03</div>
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M8 12h8"/></svg></div>
+          <h3>Hierarchia és negatív tér</h3>
+          <p>Kártyák, menük és statisztikák között szándékosan nagy üres terek. Szellős, nem zsúfolt; a kerekített sarkok barátságosabbá teszik a digitális teret.</p>
+        </div>
+        <div class="card reveal" style="--d:0.66s">
+          <div class="num">04</div>
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+          <h3>Ismerős navigáció</h3>
+          <p>Swipe a piactéren, rácsnézet a gardróbban, alsó menüsáv – bevált iparági minták, ezért nem kell újratanulni a telefont.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 15. SZÍNPALETTA ============ -->
+  <section class="slide" data-title="Színpaletta" data-circle="left:50vw; top:40vh; width:40vw; height:40vw;">
+    <div class="slide-inner">
+      <div class="kicker reveal">Arculati rendszer</div>
+      <h2 class="reveal" style="--d:0.1s">Színek, amik <span class="grad">irányt mutatnak</span></h2>
+      <div class="morph-anchor"></div>
+      <div class="palette" style="margin-top:2vh">
+        <div class="swatch reveal" style="--d:0.2s; background:#0a111f"><b>Éjkék alap</b><span>#0A111F</span></div>
+        <div class="swatch reveal" style="--d:0.28s; background:#152038"><b>Kártya felület</b><span>#152038</span></div>
+        <div class="swatch reveal" style="--d:0.36s; background:linear-gradient(160deg,#22c55e,#10b981); color:#04130a"><b>Smaragdzöld CTA</b><span style="opacity:0.85">#22C55E → #10B981</span></div>
+        <div class="swatch reveal" style="--d:0.44s; background:#eef2f7; color:#0a111f"><b>Szöveg (világos)</b><span>#EEF2F7</span></div>
+        <div class="swatch reveal" style="--d:0.52s; background:#ef4444; color:#fff"><b>Elutasítás</b><span style="opacity:0.9">#EF4444</span></div>
+      </div>
+      <div class="grid-3" style="margin-top:3vh">
+        <div class="card reveal" style="--d:0.6s">
+          <h3>Tipográfia</h3>
+          <p><strong>Sora</strong> a címekhez – geometrikus, modern. <strong>Inter</strong> a szövegekhez – kiváló olvashatóság kis méretben is.</p>
+        </div>
+        <div class="card reveal" style="--d:0.7s">
+          <h3>Formák</h3>
+          <p>Nagy lekerekítés (16–24 px) minden kártyán és gombon. Középen egy kör alakú, kiemelt szkennelés gomb.</p>
+        </div>
+        <div class="card reveal" style="--d:0.8s">
+          <h3>Mozgás</h3>
+          <p>Rövid, lágy átmenetek; a zöld elemek pulzálnak, a kártyák swipe-ra reagálnak – a mozgás mindig funkciót jelez.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 16. HATÁS ============ -->
+  <section class="slide" data-title="Hatás" data-circle="left:12vw; top:40vh; width:42vw; height:42vw;">
+    <div class="slide-inner">
+      <div class="kicker reveal">Miért működik?</div>
+      <h2 class="reveal" style="--d:0.1s">Három nyertes: <span class="grad">te, a közösség, a bolygó</span></h2>
+      <div class="morph-anchor"></div>
+      <div class="grid-3" style="margin-top:2vh">
+        <div class="card reveal" style="--d:0.3s">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+          <h3>A felhasználónak</h3>
+          <p>Átlátható ruhatár, napi szett ötlet, kevesebb felesleges vásárlás. Az Öko Pontok és a statisztikák játékossá teszik a tudatosságot.</p>
+        </div>
+        <div class="card reveal" style="--d:0.42s">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg></div>
+          <h3>A közösségnek</h3>
+          <p>Helyi piactér, ahol a ruhák gazdát cserélnek, nem a kukában végzik. A csere ingyenes, a vétel másodkézből olcsóbb.</p>
+        </div>
+        <div class="card reveal" style="--d:0.54s">
+          <div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c4-4 8-7.6 8-12a8 8 0 1 0-16 0c0 4.4 4 8 8 12z"/><path d="M12 10v6"/><path d="M9 13c2-1 4-1 6 0"/></svg></div>
+          <h3>A bolygónak</h3>
+          <p>Minden tovább hordott vagy továbbadott darab kevesebb textilhulladék és kevesebb új gyártás – ez az EcoSzett valódi mérőszáma.</p>
+        </div>
+      </div>
+      <div class="cta-row reveal" style="--d:0.7s; margin-top:3vh">
+        <span class="pill"><i class="dot"></i> Fotó → AI → Gardrób</span>
+        <span class="pill">Napi szett a meglévőből</span>
+        <span class="pill">Ritkán hordott → Piactér</span>
+        <span class="pill">Csere vagy eladás egy gombbal</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 17. ZÁRÓ DIA ============ -->
+  <section class="slide" data-title="Köszönjük" data-circle="left:30vw; top:10vh; width:44vw; height:44vw;">
+    <div class="slide-inner" style="text-align:center; align-items:center">
+      <div class="reveal zoom" style="--d:0.1s">
+        <div class="logo-wrap" style="width:clamp(110px,11vw,200px); height:clamp(110px,11vw,200px)">
+          <div class="logo-tile">
+            <svg viewBox="0 0 64 64" fill="none" stroke="#16a34a" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+              <path class="draw" d="M32 30 L8 48 H56 Z"/>
+              <path class="draw" d="M32 30 V22"/>
+              <path class="draw d2" d="M32 22 C32 14 38 10 44 10 C44 18 40 24 32 22 Z"/>
+              <path class="draw d2" d="M34 20 L42 12"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <h1 class="reveal" style="--d:0.3s; margin-top:3vh">Köszönjük a <span class="grad">figyelmet!</span></h1>
+      <div class="morph-anchor" style="margin-left:auto; margin-right:auto"></div>
+      <p class="lead reveal" style="--d:0.45s; margin:0 auto">EcoSzett – hordd, amid van. Add tovább, amit nem. <br>Gipsy Systems KFT. · Biró Botond · Lavner Szabolcs · Nagy Gergő</p>
+      <div class="cta-row reveal" style="--d:0.6s; justify-content:center">
+        <button class="btn primary" onclick="goTo(11)">Vissza a prototípushoz</button>
+        <button class="btn" onclick="goTo(0)">Újra az elejétől</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- VEZÉRLŐSÁV -->
+<div id="controls">
+  <button onclick="changeSlide(-1)" title="Előző (←)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <span id="counter">1 / 17</span>
+  <button class="go" onclick="changeSlide(1)" title="Következő (→)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+  <span class="sep"></span>
+  <button onclick="changeFontScale(-0.1)" title="Kisebb betű (-)">A-</button>
+  <button onclick="changeFontScale(0.1)" title="Nagyobb betű (+)">A+</button>
+  <span class="sep"></span>
+  <button onclick="toggleOverview()" title="Áttekintés (O)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></button>
+  <button onclick="toggleFS()" title="Teljes képernyő (F)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg></button>
+</div>
+
+<div id="dots"></div>
+
+<div id="overview">
+  <h3>Áttekintés – kattints egy diára (Esc: bezár)</h3>
+  <div class="ov-grid" id="ov-grid"></div>
+</div>
+
+<script>
+  /* =========================================================
+     APP KÉPERNYŐK – egyetlen helyen definiálva, mindenhol újrahasznosítva
+     ========================================================= */
+  const ICONS = {
+    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>',
+    grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+    scan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><circle cx="12" cy="12" r="3"/></svg>',
+    bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>',
+    user: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+    shirt: '<svg viewBox="0 0 24 24" fill="none" stroke="#e5e7eb" stroke-width="1.6" stroke-linejoin="round"><path d="M8 3l4 2 4-2 5 4-3 3-1-1v12H7V9L6 10 3 7z" fill="#e5e7eb" fill-opacity="0.9"/></svg>',
+    tri: '<svg viewBox="0 0 24 24" fill="#e5e7eb"><path d="M12 4l9 16H3z"/></svg>',
+    search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>',
+    heart: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 21s-7.5-4.6-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6c-2 4.4-9.5 9-9.5 9z"/></svg>',
+    leaf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c0-8 5-13 14-14-1 9-6 14-14 14z"/><path d="M5 19l7-7"/></svg>'
+  };
+
+  const SCREENS = {
+    home: `
+      <div class="screen fade-in">
+        <h4>Szia, Botond! <span class="badge"><i></i>85 Pont</span></h4>
+        <div class="s-card">
+          <div class="t">Napi Szett Ajánló</div>
+          <div class="s-shirt">${ICONS.shirt}</div>
+          <div class="s-btn">Felveszem</div>
+        </div>
+        <div class="s-card">
+          <div class="t">Gardrób Kihasználtság</div>
+          <div class="s-bars">
+            <i style="--h:45%;--i:0"></i><i style="--h:80%;--i:1"></i><i style="--h:30%;--i:2"></i><i style="--h:95%;--i:3"></i><i style="--h:60%;--i:4"></i><i style="--h:72%;--i:5"></i>
+          </div>
+        </div>
+        <div class="s-card s-alert">
+          <div class="t">Rég nem hordtad <span class="badge" style="border-color:rgba(239,68,68,0.5);color:#f87171;background:rgba(239,68,68,0.1)">6 hete</span></div>
+          <div class="sub">Kék ing · a rendszer ritkán használtnak jelölte</div>
+          <div class="s-link">Piactérre teszem →</div>
+        </div>
+      </div>`,
+    wardrobe: `
+      <div class="screen fade-in">
+        <h4>Digitális Gardrób</h4>
+        <div class="s-search">${ICONS.search.replace('<svg', '<svg style="width:1.1em;height:1.1em"')} Keresés…</div>
+        <div class="s-chips"><span class="s-chip on">Összes</span><span class="s-chip">Téli</span><span class="s-chip">Felsők</span><span class="s-chip">Nadrágok</span></div>
+        <div class="s-grid">
+          ${[['Ruhadarab 1','Viselve: 3 napja'],['Ruhadarab 2','Viselve: 1 hete'],['Ruhadarab 3','Viselve: 2 napja'],['Ruhadarab 4','Viselve: 4 hete'],['Ruhadarab 5','Viselve: 2 hete'],['Ruhadarab 6','Viselve: ma']].map((it,i)=>`
+            <div class="s-item" style="--i:${i}"><div class="ph">${ICONS.shirt}</div><div class="t">${it[0]}</div><div class="sub">${it[1]}</div></div>`).join('')}
+        </div>
+      </div>`,
+    scan: `
+      <div class="screen fade-in" style="padding:0">
+        <div class="s-cam">
+          <div class="corner c1"></div><div class="corner c2"></div><div class="corner c3"></div><div class="corner c4"></div>
+          <div class="garment">${ICONS.shirt}</div>
+          <div class="scanline"></div>
+          <div class="tag t1">Pulóver</div>
+          <div class="tag t2">Fekete</div>
+          <div class="tag t3">Felső</div>
+          <div class="ai">AI felismerés folyamatban</div>
+        </div>
+      </div>`,
+    market: `
+      <div class="screen fade-in">
+        <h4>Piactér</h4>
+        <div class="s-swipe">
+          <div class="mcard back"><div class="img">${ICONS.shirt}</div><div class="info"><div class="t">Kötött pulóver</div><div class="sub">Méret: L • Állapot: Jó</div><div class="price">Csere</div></div></div>
+          <div class="mcard front"><div class="img">${ICONS.tri}</div><div class="info"><div class="t">Vintage Farmerdzseki</div><div class="sub">Méret: M • Állapot: Kiváló</div><div class="price">Csere vagy 5.000 Ft</div></div></div>
+        </div>
+        <div class="s-actions"><div class="act no">${ICONS.x}</div><div class="act yes">${ICONS.heart}</div></div>
+        <div class="s-near"><span>📍 2 km-en belül</span><span>14 új hirdetés</span></div>
+      </div>`,
+    profile: `
+      <div class="screen fade-in">
+        <div class="s-avatar">${ICONS.user}</div>
+        <div class="s-name">Biró Botond</div>
+        <div class="s-team">Gipsy Systems csapat</div>
+        <div class="s-stats"><div class="s-stat"><b>12</b><span>Megmentett ruha</span></div><div class="s-stat"><b>3</b><span>Sikeres csere</span></div></div>
+        <div class="s-list">
+          ${[['Saját hirdetések','›'],['Beállítások','›'],['Értesítések','›'],['Sötét mód','<span class="s-toggle"></span>'],['Súgó','›']].map((r,i)=>`<div class="s-row" style="--i:${i}"><span>${r[0]}</span><span>${r[1]}</span></div>`).join('')}
+        </div>
+      </div>`
+  };
+
+  const NAV_ORDER = ['home', 'wardrobe', 'scan', 'bell', 'profile'];
+  function navHTML(active) {
+    return `<div class="s-nav">
+      <div class="ni ${active==='home'?'on':''}" data-nav="home">${ICONS.home}</div>
+      <div class="ni ${active==='wardrobe'?'on':''}" data-nav="wardrobe">${ICONS.grid}</div>
+      <div class="ni scan" data-nav="scan">${ICONS.scan}</div>
+      <div class="ni ${active==='market'?'on':''}" data-nav="market">${ICONS.bell}</div>
+      <div class="ni ${active==='profile'?'on':''}" data-nav="profile">${ICONS.user}</div>
+    </div>`;
+  }
+
+  const MARKET_ITEMS = [
+    ['Vintage Farmerdzseki', 'Méret: M • Állapot: Kiváló', 'Csere vagy 5.000 Ft', 'tri'],
+    ['Kötött pulóver', 'Méret: L • Állapot: Jó', 'Csere', 'shirt'],
+    ['Fehér sneaker', 'Méret: 42 • Állapot: Újszerű', '8.000 Ft', 'tri'],
+    ['Lenvászon ing', 'Méret: S • Állapot: Kiváló', 'Csere vagy 3.500 Ft', 'shirt']
+  ];
+  function marketCard(it, cls) {
+    return `<div class="mcard ${cls}"><div class="img">${ICONS[it[3]]}</div><div class="info"><div class="t">${it[0]}</div><div class="sub">${it[1]}</div><div class="price">${it[2]}</div></div></div>`;
+  }
+  function marketHTML(idx) {
+    const a = MARKET_ITEMS[idx % MARKET_ITEMS.length], b = MARKET_ITEMS[(idx + 1) % MARKET_ITEMS.length];
+    return `
+      <div class="screen fade-in">
+        <h4>Piactér</h4>
+        <div class="s-swipe">${marketCard(b, 'back')}${marketCard(a, 'front')}</div>
+        <div class="s-actions"><div class="act no">${ICONS.x}</div><div class="act yes">${ICONS.heart}</div></div>
+        <div class="s-near"><span>📍 2 km-en belül</span><span>${14 - (idx % MARKET_ITEMS.length)} új hirdetés</span></div>
+      </div>`;
+  }
+
+  function bindPhone(phone) {
+    if (phone.dataset.bound) return;
+    phone.dataset.bound = '1';
+    phone.dataset.mi = '0';
+    phone.addEventListener('click', e => {
+      const nav = e.target.closest('[data-nav]');
+      if (nav) { e.stopPropagation(); switchScreen(phone, nav.dataset.nav); return; }
+      const chip = e.target.closest('.s-chip');
+      if (chip) { phone.querySelectorAll('.s-chip').forEach(c => c.classList.toggle('on', c === chip)); phone.querySelectorAll('.s-item').forEach((it, i) => { it.style.animation = 'none'; it.offsetHeight; it.style.animation = ''; }); return; }
+      const btn = e.target.closest('.s-btn');
+      if (btn) { btn.classList.add('done'); btn.textContent = 'Felvéve ✓  +5 Öko Pont'; const bd = phone.querySelector('.badge'); if (bd && !bd.dataset.up) { bd.dataset.up = 1; bd.innerHTML = '<i></i>90 Pont'; } return; }
+      const act = e.target.closest('.act');
+      if (act) {
+        const sw = phone.querySelector('.s-swipe'); const front = sw && sw.querySelector('.mcard.front');
+        if (!front || front.classList.contains('out-left') || front.classList.contains('out-right')) return;
+        sw.classList.add('manual'); sw.offsetHeight;
+        front.classList.add(act.classList.contains('no') ? 'out-left' : 'out-right'); sw.classList.add('lift');
+        setTimeout(() => { phone.dataset.mi = String((+phone.dataset.mi || 0) + 1); switchScreen(phone, 'market'); }, 450);
+        return;
+      }
+      const tg = e.target.closest('.s-toggle');
+      if (tg) { tg.classList.toggle('off'); return; }
+      if (e.target.closest('.s-link')) { switchScreen(phone, 'market'); return; }
+    });
+    /* 3D dőlés egérre */
+    const stage = phone.closest('.phone-stage') || phone.closest('.phone-row') || phone;
+    phone.addEventListener('mouseenter', () => phone.classList.add('settled'));
+    phone.addEventListener('mousemove', e => {
+      const r = phone.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
+      phone.style.transform = `rotateY(${x * 22}deg) rotateX(${-y * 16}deg) translateY(-6px) scale(1.03)`;
+    });
+    phone.addEventListener('mouseleave', () => { phone.style.transform = ''; });
+  }
+
+  function switchScreen(phone, screen) {
+    renderPhone(phone, screen);
+    if (phone.id === 'proto-phone') document.querySelectorAll('#proto-buttons .btn').forEach(b => b.classList.toggle('primary', b.dataset.go === screen));
+  }
+
+  function renderPhone(phone, screen) {
+    bindPhone(phone);
+    if (screen === 'market') SCREENS.market = marketHTML(+phone.dataset.mi || 0);
+    phone.innerHTML = `
+      <div class="status"><span>9:41</span><span class="dots"><i></i><i></i><i></i></span></div>
+      ${SCREENS[screen] || SCREENS.home}
+      ${navHTML(screen)}`;
+    phone.dataset.screen = screen;
+  }
+
+  function setProto(screen) { switchScreen(document.getElementById('proto-phone'), screen); }
+
+  /* Minden telefon mockup feltöltése */
+  document.querySelectorAll('.phone[data-screen]').forEach(p => renderPhone(p, p.dataset.screen));
+  document.querySelectorAll('#proto-buttons .btn').forEach(b => b.addEventListener('click', () => setProto(b.dataset.go)));
+
+  /* =========================================================
+     DIAVEZÉRLÉS
+     ========================================================= */
+  const slides = document.querySelectorAll('.slide');
+  const morphBar = document.getElementById('morph-bar');
+  const morphCircle = document.getElementById('morph-circle');
+  const counter = document.getElementById('counter');
+  const progressFill = document.getElementById('progress-fill');
+  const dotsWrap = document.getElementById('dots');
+  const overview = document.getElementById('overview');
+  const ovGrid = document.getElementById('ov-grid');
+  const hint = document.getElementById('hint');
+  let current = 0;
+  let fontScale = 1;
+  let locked = false;
+
+  /* oldalsó pontok + áttekintő rács */
+  slides.forEach((s, i) => {
+    const d = document.createElement('button');
+    d.dataset.title = s.dataset.title || `Dia ${i + 1}`;
+    d.setAttribute('aria-label', d.dataset.title);
+    d.addEventListener('click', () => goTo(i));
+    dotsWrap.appendChild(d);
+
+    const o = document.createElement('div');
+    o.className = 'ov';
+    o.dataset.n = String(i + 1).padStart(2, '0');
+    const h = s.querySelector('h1, h2');
+    o.innerHTML = `<b>${s.dataset.title}</b><span>${h ? h.innerHTML.replace(/<br\s*\/?>/gi, ' ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() : ''}</span>`;
+    o.addEventListener('click', () => { goTo(i); toggleOverview(false); });
+    ovGrid.appendChild(o);
+  });
+
+  function changeFontScale(delta) {
+    fontScale = Math.max(0.75, Math.min(1.45, fontScale + delta));
+    document.documentElement.style.setProperty('--font-scale', fontScale.toFixed(2));
+    setTimeout(syncMorphBar, 60);
+  }
+
+  function syncMorphBar() {
+    const anchor = slides[current].querySelector('.morph-anchor');
+    if (!anchor) { morphBar.style.opacity = 0; return; }
+    const rect = anchor.getBoundingClientRect();
+    morphBar.style.opacity = 1;
+    morphBar.style.width = `${rect.width}px`;
+    morphBar.style.height = `${rect.height}px`;
+    morphBar.style.transform = `translate3d(${rect.left}px, ${rect.top}px, 0)`;
+  }
+
+  function animateCounter(el, end, duration) {
+    const start = 0;
+    let t0 = null;
+    const ease = t => 1 - Math.pow(1 - t, 3);
+    function step(ts) {
+      if (!t0) t0 = ts;
+      const p = Math.min((ts - t0) / duration, 1);
+      const val = Math.round(start + ease(p) * (end - start));
+      el.textContent = val.toLocaleString('hu-HU');
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function updateMorph(index) {
+    slides.forEach((s, i) => {
+      s.classList.remove('active', 'prev');
+      if (i === index) s.classList.add('active');
+      else if (i < index) s.classList.add('prev');
+    });
+    const active = slides[index];
+    morphCircle.style.cssText = active.getAttribute('data-circle') || '';
+    counter.textContent = `${index + 1} / ${slides.length}`;
+    progressFill.style.width = `${((index + 1) / slides.length) * 100}%`;
+    dotsWrap.querySelectorAll('button').forEach((d, i) => d.classList.toggle('on', i === index));
+    ovGrid.querySelectorAll('.ov').forEach((o, i) => o.classList.toggle('on', i === index));
+
+    /* számlálók */
+    active.querySelectorAll('[data-count]').forEach(el => {
+      animateCounter(el, parseInt(el.dataset.count, 10), 1600);
+    });
+    /* nem aktív diák számlálói visszaállnak */
+    slides.forEach((s, i) => { if (i !== index) s.querySelectorAll('[data-count]').forEach(el => el.textContent = '0'); });
+
+    /* a telefon-képernyők animációi újraindulnak */
+    active.querySelectorAll('.phone[data-screen]:not([data-interactive])').forEach(p => { p.classList.remove('settled'); p.style.transform = ''; renderPhone(p, p.dataset.screen); });
+
+    if (index > 0) hint.classList.add('hide');
+    history.replaceState(null, '', `#${index + 1}`);
+
+    requestAnimationFrame(syncMorphBar);
+    setTimeout(syncMorphBar, 150);
+    setTimeout(syncMorphBar, 900);
+  }
+
+  function goTo(i) {
+    if (locked) return;
+    const next = Math.max(0, Math.min(slides.length - 1, i));
+    if (next === current && slides[next].classList.contains('active')) return;
+    current = next;
+    locked = true;
+    setTimeout(() => locked = false, 420);
+    updateMorph(current);
+  }
+  function changeSlide(dir) { goTo(current + dir); }
+
+  function toggleFS() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    else document.exitFullscreen();
+  }
+
+  function toggleOverview(force) {
+    const open = typeof force === 'boolean' ? force : !overview.classList.contains('open');
+    overview.classList.toggle('open', open);
+  }
+
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return;
+    if (overview.classList.contains('open') && e.key === 'Escape') { toggleOverview(false); return; }
+    switch (e.key) {
+      case 'ArrowRight': case ' ': case 'PageDown': e.preventDefault(); changeSlide(1); break;
+      case 'ArrowLeft': case 'PageUp': e.preventDefault(); changeSlide(-1); break;
+      case 'Home': e.preventDefault(); goTo(0); break;
+      case 'End': e.preventDefault(); goTo(slides.length - 1); break;
+      case '+': case '=': changeFontScale(0.1); break;
+      case '-': changeFontScale(-0.1); break;
+      case 'f': case 'F': toggleFS(); break;
+      case 'o': case 'O': toggleOverview(); break;
+      case 'Escape': toggleOverview(false); break;
+    }
+  });
+
+  /* érintés: swipe lapozás */
+  let touchX = null;
+  window.addEventListener('touchstart', e => { touchX = e.touches[0].clientX; }, { passive: true });
+  window.addEventListener('touchend', e => {
+    if (touchX === null || window.innerWidth < 900) return;
+    const dx = e.changedTouches[0].clientX - touchX;
+    if (Math.abs(dx) > 60) changeSlide(dx < 0 ? 1 : -1);
+    touchX = null;
+  });
+
+  /* egér: görgetés lapozás (tompítva) */
+  let wheelT = 0;
+  window.addEventListener('wheel', e => {
+    if (overview.classList.contains('open') || window.innerWidth < 900) return;
+    const now = Date.now();
+    if (now - wheelT < 900 || Math.abs(e.deltaY) < 20) return;
+    wheelT = now;
+    changeSlide(e.deltaY > 0 ? 1 : -1);
+  }, { passive: true });
+
+  /* kártya fénykövetés + telefon enyhe parallax */
+  document.addEventListener('mousemove', e => {
+    document.querySelectorAll('.slide.active .card').forEach(c => {
+      const r = c.getBoundingClientRect();
+      c.style.setProperty('--mx', `${((e.clientX - r.left) / r.width) * 100}%`);
+      c.style.setProperty('--my', `${((e.clientY - r.top) / r.height) * 100}%`);
+    });
+  });
+
+  /* =========================================================
+     LEBEGŐ RÉSZECSKÉK (finom „levél”-pontok)
+     ========================================================= */
+  const canvas = document.getElementById('particles');
+  const ctx = canvas.getContext('2d');
+  let parts = [];
+  function resize() {
+    canvas.width = window.innerWidth * devicePixelRatio;
+    canvas.height = window.innerHeight * devicePixelRatio;
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    const n = Math.min(70, Math.floor(window.innerWidth / 22));
+    parts = Array.from({ length: n }, () => ({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      r: Math.random() * 2 + 0.6,
+      vx: (Math.random() - 0.5) * 0.25,
+      vy: -(Math.random() * 0.35 + 0.1),
+      a: Math.random() * 0.5 + 0.15,
+      ph: Math.random() * Math.PI * 2
+    }));
+  }
+  function tick(t) {
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    for (const p of parts) {
+      p.x += p.vx + Math.sin(t / 1800 + p.ph) * 0.15;
+      p.y += p.vy;
+      if (p.y < -10) { p.y = window.innerHeight + 10; p.x = Math.random() * window.innerWidth; }
+      if (p.x < -10) p.x = window.innerWidth + 10;
+      if (p.x > window.innerWidth + 10) p.x = -10;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(52, 211, 153, ${p.a * (0.6 + 0.4 * Math.sin(t / 900 + p.ph))})`;
+      ctx.fill();
+    }
+    requestAnimationFrame(tick);
+  }
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.addEventListener('resize', () => { resize(); syncMorphBar(); });
+  resize();
+  if (!reduced) requestAnimationFrame(tick);
+
+  /* indulás: URL hash alapján */
+  const h = parseInt(location.hash.replace('#', ''), 10);
+  current = (!isNaN(h) && h >= 1 && h <= slides.length) ? h - 1 : 0;
+  window.addEventListener('load', () => { updateMorph(current); setTimeout(syncMorphBar, 600); });
+  updateMorph(current);
+</script>
+</body>
+</html>
